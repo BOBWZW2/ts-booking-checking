@@ -1447,7 +1447,6 @@ function transferDrawer(group, segment) {
     state.drawerSegmentKey = segment.key;
     state.expandedFeederGroups.clear();
     state.expandedConnections.clear();
-    if (groups[0]) state.expandedFeederGroups.add(groups[0].pol);
   }
   return `
     <div class="transfer-drawer-backdrop transfer-modal-backdrop" data-transfer-drawer-close></div>
