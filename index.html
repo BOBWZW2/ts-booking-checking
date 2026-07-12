@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1f33" />
+    <title>TS Booking Control</title>
+    <link rel="stylesheet" href="styles.css?v=20260712-13" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">TS</div>
+          <div>
+            <p class="eyebrow">DAILY OPERATIONS</p>
+            <h1>TS Booking Control</h1>
+            <p id="dataMeta" class="data-meta">正在载入每日 Booking 数据</p>
+          </div>
+        </div>
+        <div class="data-actions">
+          <div id="dataStatus" class="data-status" aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>数据载入中</span>
+          </div>
+          <button id="refreshBookingButton" class="refresh-data-button" type="button">
+            <span class="refresh-data-icon" aria-hidden="true">↻</span>
+            手动刷新
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <nav id="moduleSwitch" class="module-switch module-switch-global" aria-label="业务模块">
+          <button class="module-switch-button active" type="button" data-module="direct" aria-pressed="true">
+            <span class="switch-index">01</span>
+            <span class="switch-copy"><strong>直航监控</strong><small>按 POL 归集 / ETD 升序</small></span>
+            <span class="switch-metrics"><span><strong id="directSwitchTeu">0</strong><small>TEU</small></span><span><strong id="directSwitchWeight">0</strong><small>TON</small></span></span>
+          </button>
+          <button class="module-switch-button" type="button" data-module="transfer" aria-pressed="false">
+            <span class="switch-index">02</span>
+            <span class="switch-copy"><strong>中转监控</strong><small>航段汇总 / ETB 接驳预警</small></span>
+            <span class="switch-metrics"><span><strong id="transferSwitchTeu">0</strong><small>TEU</small></span><span><strong id="transferSwitchWeight">0</strong><small>TON</small></span></span>
+          </button>
+          <button class="module-switch-button transfer-search-switch" type="button" data-module="transfer-search" aria-pressed="false">
+            <span class="switch-index">03</span>
+            <span class="switch-copy"><strong>中转搜索</strong><small>按中转港 / ETB 日期查询</small></span>
+            <span class="switch-metrics"><span><strong id="transferSearchSwitchTeu">0</strong><small>TEU</small></span><span><strong id="transferSearchSwitchWeight">0</strong><small>TON</small></span></span>
+          </button>
+        </nav>
+
+        <section id="voyageSearchWorkbench" class="search-workbench" aria-labelledby="searchTitle">
+          <div class="search-heading">
+            <div>
+              <p class="section-kicker">VOYAGE LOOKUP</p>
+              <h2 id="searchTitle">查询航次</h2>
+            </div>
+            <p id="queryHint" class="query-hint">VVD 是主查询条件，输入后会自动匹配 Lane</p>
+          </div>
+
+          <div class="filter-grid" aria-label="航次与货类筛选">
+            <label class="input-field">
+              <span>LANE</span>
+              <div class="input-shell">
+                <input id="laneInput" list="laneList" autocomplete="off" placeholder="输入或选择 Lane" />
+              </div>
+            </label>
+
+            <label class="input-field input-field-primary">
+              <span>VVD</span>
+              <div class="input-shell">
+                <input id="vvdInput" list="vvdList" autocomplete="off" placeholder="输入航次，例如 CUHC2608E" />
+              </div>
+            </label>
+
+            <div class="filter-field">
+              <span>箱源</span>
+              <div id="cocFilter" class="filter-toggle" role="group" aria-label="COC/SOC 筛选">
+                <button class="filter-option active" type="button" data-value="ALL" aria-pressed="true">全部</button>
+                <button class="filter-option" type="button" data-value="COC" aria-pressed="false">COC</button>
+                <button class="filter-option" type="button" data-value="SOC" aria-pressed="false">SOC</button>
+              </div>
+            </div>
+
+            <div class="filter-field">
+              <span>货源</span>
+              <div id="sulFilter" class="filter-toggle" role="group" aria-label="CUL/SUL 筛选">
+                <button class="filter-option active" type="button" data-value="ALL" aria-pressed="true">全部</button>
+                <button class="filter-option" type="button" data-value="CUL" aria-pressed="false">CUL</button>
+                <button class="filter-option" type="button" data-value="SUL" aria-pressed="false">SUL</button>
+              </div>
+            </div>
+
+            <button id="clearButton" class="clear-button" type="button">
+              <span aria-hidden="true">×</span>
+              清空
+            </button>
+          </div>
+        </section>
+
+        <section id="transferSearchWorkbench" class="search-workbench transfer-search-workbench" aria-labelledby="transferSearchTitle" hidden>
+          <div class="search-heading">
+            <div>
+              <p class="section-kicker">TRANSFER PORT LOOKUP</p>
+              <h2 id="transferSearchTitle">中转货量搜索</h2>
+            </div>
+            <p id="transferSearchHint" class="query-hint">选择中转港，并填写 ETB 日期或至少一项下方查询条件</p>
+          </div>
+
+          <div class="transfer-search-primary">
+            <label class="input-field input-field-primary">
+              <span>中转港</span>
+              <div class="input-shell">
+                <input id="transferPortInput" list="transferPortList" autocomplete="off" placeholder="输入或选择中转港，例如 CNNAS" />
+              </div>
+            </label>
+            <div class="input-field date-field">
+              <span>开始日期（ETB）</span>
+              <div class="date-input-shell">
+                <input id="transferStartDate" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD" aria-label="开始日期（ETB），例如 2026-06-01" />
+                <button class="date-picker-button" type="button" data-date-picker-for="transferStartDate" aria-label="从日历选择开始日期" title="选择日期"><span aria-hidden="true">▦</span></button>
+                <input class="date-picker-proxy" type="date" tabindex="-1" aria-hidden="true" />
+              </div>
+            </div>
+            <div class="input-field date-field">
+              <span>结束日期（ETB）</span>
+              <div class="date-input-shell">
+                <input id="transferEndDate" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD" aria-label="结束日期（ETB），例如 2026-06-01" />
+                <button class="date-picker-button" type="button" data-date-picker-for="transferEndDate" aria-label="从日历选择结束日期" title="选择日期"><span aria-hidden="true">▦</span></button>
+                <input class="date-picker-proxy" type="date" tabindex="-1" aria-hidden="true" />
+              </div>
+            </div>
+            <button id="transferSearchButton" class="transfer-query-button" type="button">查询</button>
+            <button id="clearTransferSearchButton" class="clear-button" type="button"><span aria-hidden="true">×</span>清空</button>
+          </div>
+
+          <div class="transfer-filter-heading">
+            <div><strong>查询条件（ETB 留空时至少一项）</strong><span>同一字段多选为“或”，不同字段之间为“且”</span></div>
+            <button id="clearTransferOptionalButton" type="button">清空选填</button>
+          </div>
+          <div id="transferMultiFilters" class="transfer-multi-grid">
+            <div class="multi-select" data-multi-field="from" data-label="Pre Port"></div>
+            <div class="multi-select" data-multi-field="to" data-label="Post Port"></div>
+            <div class="multi-select" data-multi-field="bookingPol" data-label="Booking POL"></div>
+            <div class="multi-select" data-multi-field="bookingPod" data-label="Booking POD"></div>
+            <div class="multi-select" data-multi-field="laneIn" data-label="LANE IN"></div>
+            <div class="multi-select" data-multi-field="laneOut" data-label="LANE OUT"></div>
+            <div class="multi-select" data-multi-field="vvdIn" data-label="VVD IN"></div>
+            <div class="multi-select" data-multi-field="vvdOut" data-label="VVD OUT"></div>
+          </div>
+          <div class="transfer-cargo-filters">
+            <div class="filter-field">
+              <span>箱源</span>
+              <div id="transferCocFilter" class="filter-toggle" role="group" aria-label="中转搜索 COC/SOC 筛选">
+                <button class="filter-option active" type="button" data-value="ALL" aria-pressed="true">全部</button>
+                <button class="filter-option" type="button" data-value="COC" aria-pressed="false">COC</button>
+                <button class="filter-option" type="button" data-value="SOC" aria-pressed="false">SOC</button>
+              </div>
+            </div>
+            <div class="filter-field">
+              <span>货源</span>
+              <div id="transferSulFilter" class="filter-toggle" role="group" aria-label="中转搜索 CUL/SUL 筛选">
+                <button class="filter-option active" type="button" data-value="ALL" aria-pressed="true">全部</button>
+                <button class="filter-option" type="button" data-value="CUL" aria-pressed="false">CUL</button>
+                <button class="filter-option" type="button" data-value="SUL" aria-pressed="false">SUL</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="emptyState" class="empty-state" aria-live="polite">
+          <div class="empty-illustration" aria-hidden="true">
+            <span class="empty-port">POL</span>
+            <span class="empty-line"></span>
+            <span class="empty-vessel">VVD</span>
+            <span class="empty-line"></span>
+            <span class="empty-port">POD</span>
+          </div>
+          <h2 id="emptyTitle">输入 VVD 开始监控</h2>
+          <p id="emptyText">系统会从 1st–5th leg 中定位航次，并分开显示直航 Booking 与中转衔接。</p>
+        </section>
+
+        <div id="resultContent" class="result-content" hidden>
+          <section class="voyage-overview" aria-labelledby="overviewTitle">
+            <div class="overview-heading">
+              <div class="voyage-identity">
+                <span class="current-label">当前查询</span>
+                <div class="voyage-title-row">
+                  <span id="queryLane" class="lane-badge">—</span>
+                  <h2 id="overviewTitle">—</h2>
+                </div>
+                <p id="querySummary">—</p>
+              </div>
+              <div class="overview-counts" aria-label="查询结果 TEU 与重量统计">
+                <div class="overview-metric-card">
+                  <span class="overview-metric-title">全部货量</span>
+                  <span class="overview-metric-values"><span><strong id="matchTeu">0</strong><small>TEU</small></span><span><strong id="matchWeight">0</strong><small>TON</small></span></span>
+                </div>
+                <div class="overview-metric-card">
+                  <span class="overview-metric-title">直航货量</span>
+                  <span class="overview-metric-values"><span><strong id="directTeu">0</strong><small>TEU</small></span><span><strong id="directWeight">0</strong><small>TON</small></span></span>
+                </div>
+                <div class="overview-metric-card">
+                  <span class="overview-metric-title">中转货量</span>
+                  <span class="overview-metric-values"><span><strong id="tsTeu">0</strong><small>TEU</small></span><span><strong id="tsWeight">0</strong><small>TON</small></span></span>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          <section class="module-summary" aria-labelledby="moduleSummaryTitle">
+            <div class="summary-heading">
+              <div>
+                <span id="moduleSummaryKicker">DIRECT MONITOR</span>
+                <h2 id="moduleSummaryTitle">直航货量汇总</h2>
+                <p id="moduleSummaryHint">仅统计当前直航模块内的 Booking 记录</p>
+              </div>
+              <div class="weight-total">
+                <span>Weight TON</span>
+                <strong id="totalWeight">0</strong>
+                <small>Container Weight + 2 TON / TEU</small>
+              </div>
+            </div>
+
+            <div class="stage-board" aria-label="Booking、OP、VL 箱量与 TEU 汇总">
+              <article class="stage-card stage-booking">
+                <div class="stage-card-head"><span class="stage-index">01</span><h3>Booking</h3><span class="stage-caption">订舱</span></div>
+                <div class="stage-values">
+                  <div><span>20FT</span><strong id="totalB20">0</strong></div>
+                  <div><span>40FT</span><strong id="totalB40">0</strong></div>
+                  <div class="teu-value"><span>TEU</span><strong id="totalBTeu">0</strong></div>
+                </div>
+              </article>
+
+              <article class="stage-card stage-op">
+                <div class="stage-card-head"><span class="stage-index">02</span><h3>OP</h3><span class="stage-caption">提柜</span></div>
+                <div class="stage-values">
+                  <div><span>20FT</span><strong id="totalOp20">0</strong></div>
+                  <div><span>40FT</span><strong id="totalOp40">0</strong></div>
+                  <div class="teu-value"><span>TEU</span><strong id="totalOpTeu">0</strong></div>
+                </div>
+              </article>
+
+              <article class="stage-card stage-vl">
+                <div class="stage-card-head"><span class="stage-index">03</span><h3>VL</h3><span class="stage-caption">上船</span></div>
+                <div class="stage-values">
+                  <div><span>20FT</span><strong id="totalVl20">0</strong></div>
+                  <div><span>40FT</span><strong id="totalVl40">0</strong></div>
+                  <div class="teu-value"><span>TEU</span><strong id="totalVlTeu">0</strong></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="directPanel" class="module-panel active" aria-labelledby="directTitle">
+            <div class="module-heading">
+              <div class="module-title-block">
+                <span class="module-icon direct-icon" aria-hidden="true">D</span>
+                <div>
+                  <div class="module-title-row"><h2 id="directTitle">直航 Booking</h2><span id="directBadge" class="count-badge">0 POL</span></div>
+                  <p>先按 POL 归集，点击后展开 POD；全部按 ETD 从早到晚排列</p>
+                </div>
+              </div>
+            </div>
+            <div class="direct-table-head" aria-hidden="true">
+              <span>POL / POD</span>
+              <span>ETD</span>
+              <span class="direct-head-stack direct-booking-head"><strong>Booking</strong><span class="direct-metric-labels"><small>20</small><small>40</small><small>TEU</small></span></span>
+              <span class="direct-head-stack"><strong>OP</strong><small>TEU</small></span>
+              <span class="direct-head-stack"><strong>VL</strong><small>TEU</small></span>
+              <span>Weight TON</span>
+            </div>
+            <div id="directRows" class="direct-groups"></div>
+          </section>
+
+          <section id="transferPanel" class="module-panel" aria-labelledby="transferTitle" hidden>
+            <div class="module-heading transfer-heading">
+              <div class="module-title-block">
+                <span class="module-icon transfer-icon" aria-hidden="true">T/S</span>
+                <div>
+                  <div class="module-title-row"><h2 id="transferTitle">中转港监控</h2><span id="transferBadge" class="count-badge">0 T/S 港</span></div>
+                  <p>以当前搜索 VVD 为中心，分别查看转入与转出的中转衔接</p>
+                </div>
+              </div>
+            </div>
+            <div class="transfer-direction-bar">
+              <div class="transfer-direction-copy">
+                <span>中转方向</span>
+                <p id="transferDirectionHint">同时查看转入与转出；中间程 Booking 可在两个方向分别出现。</p>
+              </div>
+              <div id="transferDirection" class="transfer-direction" role="group" aria-label="中转方向选择">
+                <button class="transfer-direction-option active" type="button" data-transfer-direction="all" aria-pressed="true">
+                  <strong>全部衔接</strong><small data-transfer-count="all">0 条</small>
+                </button>
+                <button class="transfer-direction-option" type="button" data-transfer-direction="inbound" aria-pressed="false">
+                  <strong>转入当前 VVD</strong><small data-transfer-count="inbound">0 条</small>
+                </button>
+                <button class="transfer-direction-option" type="button" data-transfer-direction="outbound" aria-pressed="false">
+                  <strong>转出当前 VVD</strong><small data-transfer-count="outbound">0 条</small>
+                </button>
+              </div>
+            </div>
+            <div id="transferPortTabs" class="transfer-port-tabs" aria-label="中转港选择"></div>
+            <div id="transferRows" class="transfer-content"></div>
+          </section>
+        </div>
+
+        <section id="transferSearchContent" class="transfer-search-content" hidden aria-live="polite">
+          <section class="module-summary transfer-search-summary" aria-labelledby="transferSearchSummaryTitle">
+            <div class="summary-heading">
+              <div>
+                <span>TRANSFER PORT SEARCH</span>
+                <h2 id="transferSearchSummaryTitle">中转货量汇总</h2>
+                <p id="transferSearchSummaryHint">—</p>
+              </div>
+              <div class="transfer-search-status-cards">
+                <span><small>已匹配</small><strong id="transferSearchMatchedCount">0</strong><em>TEU</em></span>
+                <span class="pending"><small>待选靠泊</small><strong id="transferSearchPendingCount">0</strong><em>TEU</em></span>
+                <span class="missing"><small>时间待匹配</small><strong id="transferSearchMissingCount">0</strong><em>TEU</em></span>
+                <span class="weight"><small>Weight</small><strong id="transferTotalWeight">0</strong><em>TON</em></span>
+              </div>
+            </div>
+            <div class="stage-board" aria-label="中转搜索 Booking、OP、VL 汇总">
+              <article class="stage-card stage-booking"><div class="stage-card-head"><span class="stage-index">01</span><h3>Booking</h3><span class="stage-caption">订舱</span></div><div class="stage-values"><div><span>20FT</span><strong id="transferTotalB20">0</strong></div><div><span>40FT</span><strong id="transferTotalB40">0</strong></div><div class="teu-value"><span>TEU</span><strong id="transferTotalBTeu">0</strong></div></div></article>
+              <article class="stage-card stage-op"><div class="stage-card-head"><span class="stage-index">02</span><h3>OP</h3><span class="stage-caption">提柜</span></div><div class="stage-values"><div><span>20FT</span><strong id="transferTotalOp20">0</strong></div><div><span>40FT</span><strong id="transferTotalOp40">0</strong></div><div class="teu-value"><span>TEU</span><strong id="transferTotalOpTeu">0</strong></div></div></article>
+              <article class="stage-card stage-vl"><div class="stage-card-head"><span class="stage-index">03</span><h3>VL</h3><span class="stage-caption">上船</span></div><div class="stage-values"><div><span>20FT</span><strong id="transferTotalVl20">0</strong></div><div><span>40FT</span><strong id="transferTotalVl40">0</strong></div><div class="teu-value"><span>TEU</span><strong id="transferTotalVlTeu">0</strong></div></div></article>
+            </div>
+          </section>
+          <section id="transferCallChoiceSection" class="transfer-search-section call-choice-section" hidden>
+            <header><div><span>ACTION REQUIRED</span><h2>待选择靠泊</h2><p>同一 VVD 在该中转港有多个真实靠泊；选择一次后应用到该航次全部货物。</p></div></header>
+            <div id="transferCallChoices" class="transfer-call-choices"></div>
+          </section>
+          <section class="transfer-search-section">
+            <header><div><span>OUTBOUND RESULTS</span><h2>下一程货量明细</h2><p>每个 VVD OUT 默认折叠；摘要显示中转 TEU、来源 POL 和接驳风险</p></div></header>
+            <div id="transferSearchResults" class="transfer-search-results"></div>
+          </section>
+          <section id="transferMissingSection" class="transfer-search-section missing-time-section" hidden>
+            <header><div><span>DATA CHECK</span><h2>到港时间待匹配</h2><p>Booking 路径未能关联可靠船期，不计入上方时间区段汇总。</p></div></header>
+            <div id="transferMissingResults" class="transfer-missing-results"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <datalist id="laneList"></datalist>
+    <datalist id="vvdList"></datalist>
+    <datalist id="transferPortList"></datalist>
+
+    <script
+      src="data/booking-data.js?v=8"
+      onload="document.documentElement.dataset.bookingData='loaded'"
+      onerror="document.documentElement.dataset.bookingData='error'"
+    ></script>
+    <script src="vendor/xlsx.full.min.js?v=0.20.3"></script>
+    <script src="booking-refresh.js?v=20260712-4"></script>
+    <script src="app.js?v=20260712-23"></script>
+  </body>
+</html>
