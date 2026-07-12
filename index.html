@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b1f33" />
     <title>TS Booking Control</title>
-    <link rel="stylesheet" href="styles.css?v=20260712-13" />
+    <link rel="stylesheet" href="styles.css?v=20260713-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -45,7 +45,6 @@
           <button class="module-switch-button transfer-search-switch" type="button" data-module="transfer-search" aria-pressed="false">
             <span class="switch-index">03</span>
             <span class="switch-copy"><strong>中转搜索</strong><small>按中转港 / ETB 日期查询</small></span>
-            <span class="switch-metrics"><span><strong id="transferSearchSwitchTeu">0</strong><small>TEU</small></span><span><strong id="transferSearchSwitchWeight">0</strong><small>TON</small></span></span>
           </button>
         </nav>
 
@@ -209,17 +208,12 @@
 
           </section>
 
-          <section class="module-summary" aria-labelledby="moduleSummaryTitle">
+          <section class="module-summary monitor-summary" aria-labelledby="moduleSummaryTitle">
             <div class="summary-heading">
               <div>
                 <span id="moduleSummaryKicker">DIRECT MONITOR</span>
                 <h2 id="moduleSummaryTitle">直航货量汇总</h2>
                 <p id="moduleSummaryHint">仅统计当前直航模块内的 Booking 记录</p>
-              </div>
-              <div class="weight-total">
-                <span>Weight TON</span>
-                <strong id="totalWeight">0</strong>
-                <small>Container Weight + 2 TON / TEU</small>
               </div>
             </div>
 
@@ -230,6 +224,7 @@
                   <div><span>20FT</span><strong id="totalB20">0</strong></div>
                   <div><span>40FT</span><strong id="totalB40">0</strong></div>
                   <div class="teu-value"><span>TEU</span><strong id="totalBTeu">0</strong></div>
+                  <div class="booking-weight-value" title="Container Weight + 2 TON / TEU"><span>Weight TON</span><strong id="totalWeight">0</strong></div>
                 </div>
               </article>
 
@@ -354,6 +349,6 @@
     ></script>
     <script src="vendor/xlsx.full.min.js?v=0.20.3"></script>
     <script src="booking-refresh.js?v=20260712-4"></script>
-    <script src="app.js?v=20260712-23"></script>
+    <script src="app.js?v=20260713-3"></script>
   </body>
 </html>

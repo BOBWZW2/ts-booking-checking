@@ -25,6 +25,10 @@ const state = {
   transferCallSelections: new Map(),
   transferSearchGroupEvents: new Map(),
   transferMissingGroupEvents: new Map(),
+  stickyOffsetFrame: 0,
+  stickyResizeObserver: null,
+  stickySwitchHeight: -1,
+  stickyOverviewHeight: -1,
 };
 
 const els = {
@@ -42,6 +46,7 @@ const els = {
   emptyTitle: document.getElementById("emptyTitle"),
   emptyText: document.getElementById("emptyText"),
   resultContent: document.getElementById("resultContent"),
+  voyageOverview: document.querySelector(".voyage-overview"),
   queryLane: document.getElementById("queryLane"),
   overviewTitle: document.getElementById("overviewTitle"),
   querySummary: document.getElementById("querySummary"),
@@ -66,8 +71,6 @@ const els = {
   transferCocFilter: document.getElementById("transferCocFilter"),
   transferSulFilter: document.getElementById("transferSulFilter"),
   transferSearchContent: document.getElementById("transferSearchContent"),
-  transferSearchSwitchTeu: document.getElementById("transferSearchSwitchTeu"),
-  transferSearchSwitchWeight: document.getElementById("transferSearchSwitchWeight"),
   transferSearchSummaryTitle: document.getElementById("transferSearchSummaryTitle"),
   transferSearchSummaryHint: document.getElementById("transferSearchSummaryHint"),
   transferSearchMatchedCount: document.getElementById("transferSearchMatchedCount"),
@@ -116,6 +119,38 @@ const els = {
   transferPortTabs: document.getElementById("transferPortTabs"),
   clearButton: document.getElementById("clearButton"),
 };
+
+function syncStickyOffsets() {
+  state.stickyOffsetFrame = 0;
+  const desktopSticky = window.matchMedia("(min-width: 1221px)").matches;
+  const switchHeight = desktopSticky ? Math.ceil(els.moduleSwitch.getBoundingClientRect().height) : 0;
+  const overviewVisible = desktopSticky && !els.resultContent.hidden && state.activeModule !== "transfer-search";
+  const overviewHeight = overviewVisible ? Math.ceil(els.voyageOverview.getBoundingClientRect().height) : 0;
+  if (switchHeight !== state.stickySwitchHeight) {
+    state.stickySwitchHeight = switchHeight;
+    document.documentElement.style.setProperty("--sticky-switch-height", `${switchHeight}px`);
+  }
+  if (overviewHeight !== state.stickyOverviewHeight) {
+    state.stickyOverviewHeight = overviewHeight;
+    document.documentElement.style.setProperty("--sticky-overview-height", `${overviewHeight}px`);
+  }
+}
+
+function scheduleStickyOffsets() {
+  if (state.stickyOffsetFrame) cancelAnimationFrame(state.stickyOffsetFrame);
+  state.stickyOffsetFrame = requestAnimationFrame(syncStickyOffsets);
+}
+
+function initializeStickyLayout() {
+  if (typeof ResizeObserver === "function") {
+    state.stickyResizeObserver = new ResizeObserver(scheduleStickyOffsets);
+    [els.moduleSwitch, els.voyageOverview].forEach((element) => {
+      if (element) state.stickyResizeObserver.observe(element);
+    });
+  }
+  window.addEventListener("resize", scheduleStickyOffsets, { passive: true });
+  scheduleStickyOffsets();
+}
 
 const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 const fmtInt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
@@ -862,7 +897,7 @@ function buildTransferSearchView() {
     }
     const arrivalDate = transferDateValue(selectedCall);
     if (!transferDateInRange(arrivalDate, start, end)) continue;
-    const timing = chooseTiming(
+    const timing = chooseEtbTiming(
       { calls: [selectedCall] },
       selectScheduleCalls(event.departureLeg, event.port),
     );
@@ -1943,7 +1978,7 @@ function transferResolvedGroupHtml(group, groupId) {
         <span class="ts-connection-times">
           <span><small>前程到港 ETB</small><strong>${escapeHtml(formatDate(timing.arrivalCall?.etb, true))}</strong></span>
           <i>→</i>
-          <span><small>下一程离港 ETD</small><strong>${escapeHtml(formatDate(timing.departureCall?.etd, true))}</strong></span>
+          <span><small>下一程靠港 ETB</small><strong>${escapeHtml(formatDate(timing.departureCall?.etb, true))}</strong></span>
           <span class="ts-connection-gap ${escapeHtml(risk)}"><small>接驳</small><strong>${escapeHtml(formatEtbGap(timing.gapHours))}</strong></span>
         </span>
         <span class="ts-connection-cargo"><strong>${display(group.totals.bTeu)}</strong><small>TEU</small><em>${display(group.events.length, true)} BL</em></span>
@@ -2098,8 +2133,6 @@ function renderTransferSearch() {
   els.transferSearchMatchedCount.textContent = display(totals.bTeu);
   els.transferSearchPendingCount.textContent = display(pendingTotals.bTeu);
   els.transferSearchMissingCount.textContent = display(missingTotals.bTeu);
-  els.transferSearchSwitchTeu.textContent = display(totals.bTeu);
-  els.transferSearchSwitchWeight.textContent = display(totals.weight);
   setTransferSearchTotals(totals);
   renderTransferCallChoices(view.pending);
   renderTransferResolvedResults(view.resolved);
@@ -2107,6 +2140,7 @@ function renderTransferSearch() {
   els.emptyState.hidden = true;
   els.resultContent.hidden = true;
   els.transferSearchContent.hidden = false;
+  scheduleStickyOffsets();
 }
 
 function renderOverview(matches, directMatches, transferMatches, directGroups, transferGroups) {
@@ -2195,6 +2229,7 @@ function updateModuleChrome() {
   els.directPanel.classList.toggle("active", !transferSearch && direct);
   els.transferPanel.classList.toggle("active", !transferSearch && !direct);
   if (direct || transferSearch) document.body.classList.remove("transfer-modal-open");
+  scheduleStickyOffsets();
 }
 
 function showEmpty(title, text, transferSearch = false) {
@@ -2204,12 +2239,14 @@ function showEmpty(title, text, transferSearch = false) {
   els.emptyState.hidden = false;
   els.resultContent.hidden = true;
   els.transferSearchContent.hidden = true;
+  scheduleStickyOffsets();
 }
 
 function showResults() {
   els.emptyState.hidden = true;
   els.resultContent.hidden = false;
   els.transferSearchContent.hidden = true;
+  scheduleStickyOffsets();
 }
 
 function renderQueryHint() {
@@ -2886,6 +2923,7 @@ async function init() {
 
   els.dataStatus.dataset.source = cachedSnapshot ? "browser-cache" : loadSource;
   wireEvents();
+  initializeStickyLayout();
   restoreQuery();
   refreshVvdList();
   renderAllTransferMultiSelects();
