@@ -1928,6 +1928,7 @@ function groupTransferResolvedEvents(events) {
         .map((group) => ({
           ...group,
           bookingPol: compactTransferValues(group.events.map((event) => event.bookingPol), 4),
+          bookingPod: compactTransferValues(group.events.map((event) => event.bookingPod), 4),
           totals: totalsForTransferEvents(group.events),
           riskStatus: transferSearchRiskStatus(group.events),
         }))
@@ -1974,7 +1975,7 @@ function transferResolvedGroupHtml(group, groupId) {
   return `
     <details class="ts-route-group ts-connection-group risk-${escapeHtml(risk)}" data-ts-group-id="${escapeHtml(groupId)}">
       <summary>
-        <span class="ts-arrival-identity"><small>VVD IN · ${escapeHtml(group.laneIn)}</small><strong>${escapeHtml(group.vvdIn)}</strong><em>${escapeHtml(group.from)} → ${escapeHtml(group.port)}　·　POL ${escapeHtml(group.bookingPol)}</em></span>
+        <span class="ts-arrival-identity"><small>VVD IN · ${escapeHtml(group.laneIn)}</small><strong>${escapeHtml(group.vvdIn)}</strong><em>${escapeHtml(group.from)} → ${escapeHtml(group.port)}　·　POD ${escapeHtml(group.bookingPod)}</em></span>
         <span class="ts-connection-times">
           <span><small>前程到港 ETB</small><strong>${escapeHtml(formatDate(timing.arrivalCall?.etb, true))}</strong></span>
           <i>→</i>
