@@ -2023,7 +2023,6 @@ function groupTransferResolvedEvents(events) {
           port: compactTransferValues([...group.ports], 2),
           bookingPol: compactTransferValues(group.events.map((event) => event.bookingPol), 4),
           bookingPod: compactTransferValues(group.events.map((event) => event.bookingPod), 4),
-          podCount: new Set(group.events.map((event) => event.bookingPod).filter((value) => value && value !== "—")).size,
           totals: totalsForTransferEvents(group.events),
           riskStatus: transferSearchRiskStatus(group.events),
         }))
@@ -2094,7 +2093,7 @@ function transferResolvedGroupHtml(group, groupId) {
   const risk = group.riskStatus.risk;
   const riskMeta = TRANSFER_RISK_META[risk] || TRANSFER_RISK_META.unknown;
   const multiCallKey = group.events.find((event) => event.arrivalCalls.length > 1)?.callKey || "";
-  const podSummary = group.podCount <= 1 ? `POD ${group.bookingPod}` : `${display(group.podCount, true)} 个 POD`;
+  const podSummary = `POD ${group.bookingPod.replaceAll(" · ", " / ")}`;
   return `
     <details class="ts-route-group ts-connection-group risk-${escapeHtml(risk)}" data-ts-group-id="${escapeHtml(groupId)}">
       <summary>
