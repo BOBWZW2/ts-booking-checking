@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b1f33" />
     <title>TS Booking Control</title>
-    <link rel="stylesheet" href="styles.css?v=20260713-3" />
+    <link rel="stylesheet" href="styles.css?v=20260713-4" />
   </head>
   <body>
     <div class="app-shell">
@@ -327,7 +327,10 @@
             <div id="transferCallChoices" class="transfer-call-choices"></div>
           </section>
           <section class="transfer-search-section">
-            <header><div><span>OUTBOUND RESULTS</span><h2>下一程货量明细</h2><p>每个 VVD OUT 默认折叠；摘要显示中转 TEU、重量、来源 POL 和接驳风险</p></div></header>
+            <header class="transfer-results-heading">
+              <div><span>OUTBOUND RESULTS</span><h2>下一程货量明细</h2><p>每个 VVD OUT 默认折叠；摘要显示中转 TEU、重量、来源 POL 和接驳风险</p></div>
+              <div class="transfer-search-export"><button id="transferSearchExportButton" type="button" disabled>导出 Excel</button><small id="transferSearchExportStatus" role="status" aria-live="polite"></small></div>
+            </header>
             <div id="transferSearchResults" class="transfer-search-results"></div>
           </section>
           <section id="transferMissingSection" class="transfer-search-section missing-time-section" hidden>
@@ -349,6 +352,6 @@
     ></script>
     <script src="vendor/xlsx.full.min.js?v=0.20.3"></script>
     <script src="booking-refresh.js?v=20260712-4"></script>
-    <script src="app.js?v=20260713-7"></script>
+    <script src="app.js?v=20260713-8"></script>
   </body>
 </html>

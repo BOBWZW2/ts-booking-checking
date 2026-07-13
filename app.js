@@ -88,6 +88,8 @@ const els = {
   transferTotalWeight: document.getElementById("transferTotalWeight"),
   transferCallChoiceSection: document.getElementById("transferCallChoiceSection"),
   transferCallChoices: document.getElementById("transferCallChoices"),
+  transferSearchExportButton: document.getElementById("transferSearchExportButton"),
+  transferSearchExportStatus: document.getElementById("transferSearchExportStatus"),
   transferSearchResults: document.getElementById("transferSearchResults"),
   transferMissingSection: document.getElementById("transferMissingSection"),
   transferMissingResults: document.getElementById("transferMissingResults"),
@@ -1792,6 +1794,89 @@ async function exportTransferWorkbook(scope) {
   return fileName;
 }
 
+async function exportTransferSearchWorkbook() {
+  const view = buildTransferSearchView();
+  if (!view.resolved.length) throw new Error("当前条件没有可导出的下一程货量");
+  const XLSX = await loadXlsxLibrary();
+  const outboundGroups = groupTransferResolvedEvents(view.resolved);
+  const totals = totalsForTransferEvents(view.resolved);
+  const queryRows = [
+    { "查询条件": "T/S PORT", "值": view.port },
+    { "查询条件": "ETB 开始日期", "值": view.start || "不限" },
+    { "查询条件": "ETB 结束日期", "值": view.end || "不限" },
+    { "查询条件": "COC/SOC", "值": transferSearchFilterValue(els.transferCocFilter) },
+    { "查询条件": "CUL/SUL", "值": transferSearchFilterValue(els.transferSulFilter) },
+    ...Object.entries(TRANSFER_SEARCH_FIELDS).map(([field, label]) => ({
+      "查询条件": label,
+      "值": [...state.transferSearchFilters[field]].sort(compareAlpha).join(" / ") || "全部",
+    })),
+    { "查询条件": "唯一 BL 数", "值": new Set(view.resolved.map((event) => event.record._id)).size },
+    { "查询条件": "中转事件数", "值": view.resolved.length },
+    { "查询条件": "Booking TEU", "值": totals.bTeu },
+    { "查询条件": "Weight TON", "值": excelNumber(totals.weight) },
+  ];
+  const summaryRows = outboundGroups.map((group) => ({
+    "T/S PORT": group.port,
+    "LANE OUT": group.laneOut,
+    "VVD OUT": group.vvdOut,
+    "Post Port": group.to,
+    "Booking POL": group.bookingPol,
+    "ETB 日期数": group.arrivalDateCount,
+    "Booking 20'": group.totals.b20,
+    "Booking 40'": group.totals.b40,
+    "Booking TEU": group.totals.bTeu,
+    "OP TEU": group.totals.opTeu,
+    "VL TEU": group.totals.vlTeu,
+    "Weight TON": excelNumber(group.totals.weight),
+    "接驳状态": transferRiskLabel(group.riskStatus.risk),
+    "BL 数": new Set(group.events.map((event) => event.record._id)).size,
+  }));
+  const detailRows = [...view.resolved]
+    .sort((left, right) => compareAlpha(left.vvdOut, right.vvdOut) || left.arrivalDate.localeCompare(right.arrivalDate) || compareAlpha(left.record.blNo, right.record.blNo))
+    .map((event) => ({
+      "T/S PORT": event.port,
+      "到港日期": event.arrivalDate,
+      "BL No.": event.record.blNo || "",
+      "CUL CODE": event.record.culCode || "",
+      "Booking POL": event.bookingPol,
+      "Booking POD": event.bookingPod,
+      "Pre Port": event.from,
+      "Post Port": event.to,
+      "LANE IN": event.laneIn,
+      "VVD IN": event.vvdIn,
+      "前程 ETB": event.timing.arrivalCall?.etb || "",
+      "LANE OUT": event.laneOut,
+      "VVD OUT": event.vvdOut,
+      "下一程 ETB": event.timing.departureCall?.etb || "",
+      "接驳小时数": Number.isFinite(event.timing.gapHours) ? excelNumber(event.timing.gapHours) : "",
+      "接驳状态": transferRiskLabel(event.risk),
+      "COC/SOC": event.record.coc,
+      "CUL/SUL": event.record.sul,
+      "Booking 20'": event.record.b.t20,
+      "Booking 40'": event.record.b.t40,
+      "Booking TEU": event.record.b.teu,
+      "OP TEU": event.record.op.teu,
+      "VL TEU": event.record.vl.teu,
+      "Weight TON": excelNumber(event.record.w),
+      "POR": event.record.original?.por || "",
+      "DEL": event.record.original?.del || "",
+      "完整路径": recordPath(event.record),
+    }));
+  const workbook = XLSX.utils.book_new();
+  const querySheet = XLSX.utils.json_to_sheet(queryRows);
+  const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
+  const detailSheet = XLSX.utils.json_to_sheet(detailRows);
+  setWorksheetWidths(XLSX, querySheet, [22, 60]);
+  setWorksheetWidths(XLSX, summarySheet, [12, 14, 16, 14, 30, 12, 13, 13, 14, 12, 12, 14, 14, 10]);
+  setWorksheetWidths(XLSX, detailSheet, [12, 12, 22, 16, 14, 14, 13, 13, 14, 16, 18, 14, 16, 18, 13, 14, 12, 12, 13, 13, 14, 12, 12, 14, 12, 12, 48]);
+  XLSX.utils.book_append_sheet(workbook, querySheet, "Query");
+  XLSX.utils.book_append_sheet(workbook, summarySheet, "Outbound Summary");
+  XLSX.utils.book_append_sheet(workbook, detailSheet, "BL Detail");
+  const fileName = `TS_${view.port}_${view.start || "ALL"}_${view.end || "ALL"}.xlsx`;
+  downloadWorkbook(XLSX, workbook, fileName);
+  return fileName;
+}
+
 function initializeTransferMultiSelects() {
   els.transferMultiFilters.querySelectorAll("[data-multi-field]").forEach((container) => {
     const field = container.dataset.multiField;
@@ -2003,6 +2088,11 @@ function transferOutboundRiskHtml(status) {
 
 function renderTransferResolvedResults(events) {
   const outboundGroups = groupTransferResolvedEvents(events);
+  if (els.transferSearchExportButton) els.transferSearchExportButton.disabled = !outboundGroups.length;
+  if (els.transferSearchExportStatus) {
+    els.transferSearchExportStatus.textContent = "";
+    delete els.transferSearchExportStatus.dataset.state;
+  }
   state.transferSearchGroupEvents.clear();
   els.transferSearchResults.innerHTML = outboundGroups.length
     ? outboundGroups.map((outboundGroup) => `
@@ -2642,6 +2732,34 @@ function wireEvents() {
   });
 
   els.transferSearchContent.addEventListener("click", (event) => {
+    const exportButton = event.target.closest("#transferSearchExportButton");
+    if (exportButton) {
+      const status = els.transferSearchExportStatus;
+      const originalText = exportButton.textContent;
+      exportButton.disabled = true;
+      exportButton.textContent = "正在生成…";
+      if (status) {
+        status.textContent = "正在整理当前查询结果…";
+        status.dataset.state = "working";
+      }
+      exportTransferSearchWorkbook()
+        .then((fileName) => {
+          if (!status) return;
+          status.textContent = `${fileName} 已开始下载`;
+          status.dataset.state = "success";
+        })
+        .catch((error) => {
+          console.error("Transfer search Excel export failed", error);
+          if (!status) return;
+          status.textContent = `导出失败：${error?.message || "浏览器未能生成文件"}`;
+          status.dataset.state = "error";
+        })
+        .finally(() => {
+          exportButton.disabled = !buildTransferSearchView().resolved.length;
+          exportButton.textContent = originalText;
+        });
+      return;
+    }
     const choice = event.target.closest("[data-call-key][data-call-signature]");
     if (choice) {
       state.transferCallSelections.set(choice.dataset.callKey, choice.dataset.callSignature);
