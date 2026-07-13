@@ -429,20 +429,24 @@ def build_route_overrides(records, schedule):
             ):
                 candidate_pod.append(call)
 
-        pairs = positive_pairs(exact_pol, candidate_pod)
-        if not pairs:
-            # A vessel can change service/lane and voyage-direction convention
-            # before it reaches the Booking POD. In that case, inspect only the
-            # same physical vessel's immediately next scheduled voyage, rather
-            # than jumping to any later cycle that happens to call the POD.
-            # This resolves rotations such as
-            # CCT/CUYP2617N -> REX/CUYP2619W without guessing by voyage letters.
-            pairs = next_voyage_pairs(
-                exact_pol,
-                calls_by_family.get(identity["vessel"], []),
-                booking_vvd,
-                pod,
-            )
+        same_lane_pairs = positive_pairs(exact_pol, candidate_pod)
+
+        # A vessel can change service/lane and voyage-direction convention
+        # before it reaches the Booking POD. Always compare that immediately
+        # next physical-vessel rotation with the same-lane opposite-direction
+        # candidate. Otherwise a later call on the original lane can hide an
+        # earlier real call on the vessel's new service, for example SAN PEDRO
+        # MV1/SNPO2635S VNSGN -> MI1/SNPO2627S MYPKG.
+        next_rotation_pairs = next_voyage_pairs(
+            exact_pol,
+            calls_by_family.get(identity["vessel"], []),
+            booking_vvd,
+            pod,
+        )
+        pairs = sorted(
+            [*same_lane_pairs, *next_rotation_pairs],
+            key=pair_sort_key,
+        )
         if not pairs:
             unresolved_routes += 1
             unresolved_booking_legs += booking_count

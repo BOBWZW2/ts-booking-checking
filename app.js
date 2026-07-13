@@ -3066,7 +3066,7 @@ async function init() {
   let payload = window.__TS_BOOKING_DATA__ || null;
   const loadSource = payload ? "script" : "json";
   if (!payload) {
-    const response = await fetch("data/booking-data.json?v=8");
+    const response = await fetch("data/booking-data.json?v=9");
     if (!response.ok) throw new Error("booking-data.json not found");
     payload = await response.json();
   }
