@@ -6419,7 +6419,7 @@ body.transfer-modal-open {
 
 .ts-outbound-summary {
   display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(120px, 0.38fr) minmax(280px, 1.35fr) auto auto;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(230px, 0.65fr) minmax(280px, 1.35fr) auto auto;
   gap: 20px;
   align-items: center;
   min-height: 92px;
@@ -6460,18 +6460,28 @@ body.transfer-modal-open {
   font-style: normal;
 }
 
-.ts-outbound-cargo > strong {
+.ts-outbound-cargo-values {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.ts-outbound-cargo-values strong {
   color: var(--teal-dark);
-  font-size: 29px;
+  font-size: 24px;
   font-weight: 760;
   line-height: 1;
 }
 
-.ts-outbound-cargo em {
+.ts-outbound-cargo-values em,
+.ts-outbound-cargo-values i {
   color: var(--ink-soft);
   font-size: 13px;
   font-style: normal;
 }
+
+.ts-outbound-cargo-values i { margin: 0 3px; }
 
 .ts-outbound-pols > strong {
   overflow: hidden;
@@ -6720,7 +6730,7 @@ body.transfer-modal-open {
   .transfer-call-choice-card { grid-template-columns: 1fr; }
   .ts-route-group > summary { grid-template-columns: minmax(150px, 0.7fr) minmax(280px, 1.25fr) 52px; }
   .ts-group-metrics { grid-column: 1 / -1; }
-  .ts-outbound-summary { grid-template-columns: minmax(170px, 0.8fr) 120px minmax(240px, 1fr) auto; }
+  .ts-outbound-summary { grid-template-columns: minmax(170px, 0.8fr) minmax(220px, 0.7fr) minmax(240px, 1fr) auto; }
   .ts-outbound-toggle { grid-column: 1 / -1; text-align: right; }
   .ts-connection-group > summary { grid-template-columns: minmax(170px, 0.8fr) minmax(360px, 1.6fr) 88px 104px; }
   .ts-connection-expand { grid-column: 1 / -1; }

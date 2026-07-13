@@ -2009,7 +2009,7 @@ function renderTransferResolvedResults(events) {
         <details class="ts-outbound-group risk-${escapeHtml(outboundGroup.riskStatus.risk)}">
           <summary class="ts-outbound-summary">
             <span class="ts-outbound-identity"><small>VVD OUT · ${escapeHtml(outboundGroup.laneOut || "—")}</small><strong>${escapeHtml(outboundGroup.vvdOut || "—")}</strong><em>${escapeHtml(outboundGroup.port)} → ${escapeHtml(outboundGroup.to)}</em></span>
-            <span class="ts-outbound-cargo"><small>中转货量</small><strong>${display(outboundGroup.totals.bTeu)}</strong><em>TEU　·　${display(outboundGroup.totals.weight)} TON</em></span>
+            <span class="ts-outbound-cargo"><small>中转货量</small><span class="ts-outbound-cargo-values"><strong>${display(outboundGroup.totals.bTeu)}</strong><em>TEU</em><i>/</i><strong>${display(outboundGroup.totals.weight)}</strong><em>TON</em></span></span>
             <span class="ts-outbound-pols"><small>来自 Booking POL</small><strong>${escapeHtml(outboundGroup.bookingPol)}</strong><em>${display(outboundGroup.arrivalDateCount, true)} 个 ETB 日期</em></span>
             ${transferOutboundRiskHtml(outboundGroup.riskStatus)}
             <span class="ts-outbound-toggle"><span>展开接转详情</span><span>收起接转详情</span></span>
