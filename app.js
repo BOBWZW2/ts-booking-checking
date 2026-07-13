@@ -1932,7 +1932,10 @@ function groupTransferResolvedEvents(events) {
           totals: totalsForTransferEvents(group.events),
           riskStatus: transferSearchRiskStatus(group.events),
         }))
-        .sort((left, right) => left.arrivalDate.localeCompare(right.arrivalDate) || compareAlpha(left.vvdIn, right.vvdIn) || compareAlpha(left.from, right.from)),
+        .sort((left, right) => {
+          const missedPriority = Number(right.riskStatus.risk === "missed") - Number(left.riskStatus.risk === "missed");
+          return missedPriority || left.arrivalDate.localeCompare(right.arrivalDate) || compareAlpha(left.vvdIn, right.vvdIn) || compareAlpha(left.from, right.from);
+        }),
     }))
     .sort((left, right) => compareAlpha(left.vvdOut, right.vvdOut));
 }
@@ -1947,9 +1950,11 @@ function transferBlRows(events) {
         <td>${escapeHtml(event.laneIn)} / ${escapeHtml(event.vvdIn)}</td>
         <td>${escapeHtml(event.laneOut)} / ${escapeHtml(event.vvdOut)}</td>
         <td>${escapeHtml(event.record.coc || "—")} / ${escapeHtml(event.record.sul || "—")}</td>
-        <td>${display(event.record.b.t20)} / ${display(event.record.b.t40)} / ${display(event.record.b.teu)}</td>
-        <td>${display(event.record.op.t20)} / ${display(event.record.op.t40)} / ${display(event.record.op.teu)}</td>
-        <td>${display(event.record.vl.t20)} / ${display(event.record.vl.t40)} / ${display(event.record.vl.teu)}</td>
+        <td class="ts-bl-number">${display(event.record.b.t20)}</td>
+        <td class="ts-bl-number">${display(event.record.b.t40)}</td>
+        <td class="ts-bl-number">${display(event.record.b.teu)}</td>
+        <td class="ts-bl-number">${display(event.record.op.teu)}</td>
+        <td class="ts-bl-number">${display(event.record.vl.teu)}</td>
       </tr>`)
     .join("");
 }
@@ -1961,7 +1966,7 @@ function loadTransferBlDetails(details) {
   if (!placeholder) return;
   placeholder.innerHTML = `
     <table class="ts-bl-table">
-      <thead><tr><th>BL No. / CUL CODE</th><th>Booking POL → POD</th><th>LANE / VVD IN</th><th>LANE / VVD OUT</th><th>箱源 / 货源</th><th>Booking 20/40/TEU</th><th>OP 20/40/TEU</th><th>VL 20/40/TEU</th></tr></thead>
+      <thead><tr><th>BL No. / CUL CODE</th><th>Booking POL → POD</th><th>LANE / VVD IN</th><th>LANE / VVD OUT</th><th>箱源 / 货源</th><th class="ts-bl-number">Booking 20'</th><th class="ts-bl-number">Booking 40'</th><th class="ts-bl-number">Booking TEU</th><th class="ts-bl-number">OP TEU</th><th class="ts-bl-number">VL TEU</th></tr></thead>
       <tbody>${transferBlRows(events)}</tbody>
     </table>`;
   details.dataset.blLoaded = "true";
@@ -2004,7 +2009,7 @@ function renderTransferResolvedResults(events) {
         <details class="ts-outbound-group risk-${escapeHtml(outboundGroup.riskStatus.risk)}">
           <summary class="ts-outbound-summary">
             <span class="ts-outbound-identity"><small>VVD OUT · ${escapeHtml(outboundGroup.laneOut || "—")}</small><strong>${escapeHtml(outboundGroup.vvdOut || "—")}</strong><em>${escapeHtml(outboundGroup.port)} → ${escapeHtml(outboundGroup.to)}</em></span>
-            <span class="ts-outbound-cargo"><small>中转货量</small><strong>${display(outboundGroup.totals.bTeu)}</strong><em>TEU　·　${display(outboundGroup.events.length, true)} BL</em></span>
+            <span class="ts-outbound-cargo"><small>中转货量</small><strong>${display(outboundGroup.totals.bTeu)}</strong><em>TEU　·　${display(outboundGroup.totals.weight)} TON</em></span>
             <span class="ts-outbound-pols"><small>来自 Booking POL</small><strong>${escapeHtml(outboundGroup.bookingPol)}</strong><em>${display(outboundGroup.arrivalDateCount, true)} 个 ETB 日期</em></span>
             ${transferOutboundRiskHtml(outboundGroup.riskStatus)}
             <span class="ts-outbound-toggle"><span>展开接转详情</span><span>收起接转详情</span></span>

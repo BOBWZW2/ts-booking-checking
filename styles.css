@@ -6632,7 +6632,7 @@ body.transfer-modal-open {
 
 .ts-bl-table {
   width: 100%;
-  min-width: 1120px;
+  min-width: 1260px;
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
@@ -6660,6 +6660,7 @@ body.transfer-modal-open {
 .ts-bl-table tr:last-child td { border-bottom: 0; }
 .ts-bl-table td strong { display: block; color: var(--ink); }
 .ts-bl-table td small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.ts-bl-table .ts-bl-number { text-align: center; }
 
 .missing-time-section { border-color: #e3b3ae; }
 .missing-time-section > header { background: #fff7f6; }
