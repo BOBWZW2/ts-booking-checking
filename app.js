@@ -1982,22 +1982,26 @@ function groupTransferResolvedEvents(events) {
     outboundGroup.arrivalDates.add(event.arrivalDate);
     outboundGroup.bookingPols.add(event.bookingPol);
     outboundGroup.events.push(event);
-    const inboundKey = joinKey(event.arrivalDate, event.vvdIn, event.from, event.to);
+    const inboundKey = event.vvdIn || "—";
     if (!outboundGroup.groups.has(inboundKey)) {
       outboundGroup.groups.set(inboundKey, {
         key: inboundKey,
-        arrivalDate: event.arrivalDate,
         vvdIn: event.vvdIn,
-        laneIn: event.laneIn,
         vvdOut: event.vvdOut,
         laneOut: event.laneOut,
-        from: event.from,
-        port: event.port,
-        to: event.to,
+        laneIns: new Set(),
+        froms: new Set(),
+        ports: new Set(),
+        arrivalDates: new Set(),
         events: [],
       });
     }
-    outboundGroup.groups.get(inboundKey).events.push(event);
+    const inboundGroup = outboundGroup.groups.get(inboundKey);
+    inboundGroup.laneIns.add(event.laneIn);
+    inboundGroup.froms.add(event.from);
+    inboundGroup.ports.add(event.port);
+    inboundGroup.arrivalDates.add(event.arrivalDate);
+    inboundGroup.events.push(event);
   }
   return [...outboundGroups.values()]
     .map((outboundGroup) => ({
@@ -2013,8 +2017,13 @@ function groupTransferResolvedEvents(events) {
       groups: [...outboundGroup.groups.values()]
         .map((group) => ({
           ...group,
+          arrivalDate: [...group.arrivalDates].sort(compareAlpha)[0] || "",
+          laneIn: compactTransferValues([...group.laneIns], 4),
+          from: compactTransferValues([...group.froms], 4),
+          port: compactTransferValues([...group.ports], 2),
           bookingPol: compactTransferValues(group.events.map((event) => event.bookingPol), 4),
           bookingPod: compactTransferValues(group.events.map((event) => event.bookingPod), 4),
+          podCount: new Set(group.events.map((event) => event.bookingPod).filter((value) => value && value !== "—")).size,
           totals: totalsForTransferEvents(group.events),
           riskStatus: transferSearchRiskStatus(group.events),
         }))
@@ -2045,16 +2054,38 @@ function transferBlRows(events) {
     .join("");
 }
 
+function transferPodGroupsHtml(events) {
+  const podGroups = new Map();
+  for (const event of events) {
+    const pod = event.bookingPod || "—";
+    if (!podGroups.has(pod)) podGroups.set(pod, []);
+    podGroups.get(pod).push(event);
+  }
+  return `<div class="ts-pod-groups">${[...podGroups.entries()]
+    .sort((left, right) => compareAlpha(left[0], right[0]))
+    .map(([pod, podEvents]) => {
+      const totals = totalsForTransferEvents(podEvents);
+      const blCount = new Set(podEvents.map((event) => event.record._id)).size;
+      return `
+        <section class="ts-pod-group">
+          <header class="ts-pod-group-header">
+            <span><small>BOOKING POD</small><strong>${escapeHtml(pod)}</strong></span>
+            <span class="ts-pod-group-stats"><strong>${display(totals.bTeu)} TEU</strong><em>${display(blCount, true)} BL</em></span>
+          </header>
+          <table class="ts-bl-table">
+            <thead><tr><th>BL No. / CUL CODE</th><th>Booking POL → POD</th><th>LANE / VVD IN</th><th>LANE / VVD OUT</th><th>箱源 / 货源</th><th class="ts-bl-number">Booking 20'</th><th class="ts-bl-number">Booking 40'</th><th class="ts-bl-number">Booking TEU</th><th class="ts-bl-number">OP TEU</th><th class="ts-bl-number">VL TEU</th></tr></thead>
+            <tbody>${transferBlRows(podEvents)}</tbody>
+          </table>
+        </section>`;
+    }).join("")}</div>`;
+}
+
 function loadTransferBlDetails(details) {
   if (!details?.open || details.dataset.blLoaded === "true") return;
   const events = state.transferSearchGroupEvents.get(details.dataset.tsGroupId) || [];
   const placeholder = details.querySelector("[data-ts-bl-placeholder]");
   if (!placeholder) return;
-  placeholder.innerHTML = `
-    <table class="ts-bl-table">
-      <thead><tr><th>BL No. / CUL CODE</th><th>Booking POL → POD</th><th>LANE / VVD IN</th><th>LANE / VVD OUT</th><th>箱源 / 货源</th><th class="ts-bl-number">Booking 20'</th><th class="ts-bl-number">Booking 40'</th><th class="ts-bl-number">Booking TEU</th><th class="ts-bl-number">OP TEU</th><th class="ts-bl-number">VL TEU</th></tr></thead>
-      <tbody>${transferBlRows(events)}</tbody>
-    </table>`;
+  placeholder.innerHTML = transferPodGroupsHtml(events);
   details.dataset.blLoaded = "true";
 }
 
@@ -2063,10 +2094,11 @@ function transferResolvedGroupHtml(group, groupId) {
   const risk = group.riskStatus.risk;
   const riskMeta = TRANSFER_RISK_META[risk] || TRANSFER_RISK_META.unknown;
   const multiCallKey = group.events.find((event) => event.arrivalCalls.length > 1)?.callKey || "";
+  const podSummary = group.podCount <= 1 ? `POD ${group.bookingPod}` : `${display(group.podCount, true)} 个 POD`;
   return `
     <details class="ts-route-group ts-connection-group risk-${escapeHtml(risk)}" data-ts-group-id="${escapeHtml(groupId)}">
       <summary>
-        <span class="ts-arrival-identity"><small>VVD IN · ${escapeHtml(group.laneIn)}</small><strong>${escapeHtml(group.vvdIn)}</strong><em>${escapeHtml(group.from)} → ${escapeHtml(group.port)}　·　POD ${escapeHtml(group.bookingPod)}</em></span>
+        <span class="ts-arrival-identity"><small>VVD IN · ${escapeHtml(group.laneIn)}</small><strong>${escapeHtml(group.vvdIn)}</strong><em>${escapeHtml(group.from)} → ${escapeHtml(group.port)}　·　${escapeHtml(podSummary)}</em></span>
         <span class="ts-connection-times">
           <span><small>前程到港 ETB</small><strong>${escapeHtml(formatDate(timing.arrivalCall?.etb, true))}</strong></span>
           <i>→</i>

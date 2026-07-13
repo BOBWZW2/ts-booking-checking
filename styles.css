@@ -6691,6 +6691,59 @@ body.transfer-modal-open {
   text-align: center;
 }
 
+.ts-pod-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.ts-pod-group {
+  overflow: hidden;
+  min-width: 1260px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ts-pod-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  background: #edf5f5;
+}
+
+.ts-pod-group-header > span:first-child,
+.ts-pod-group-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ts-pod-group-header small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.ts-pod-group-header strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.ts-pod-group-stats em {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.ts-pod-group .ts-bl-table {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+}
+
 .ts-bl-table {
   width: 100%;
   min-width: 1260px;
