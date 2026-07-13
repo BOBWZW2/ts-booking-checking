@@ -6462,7 +6462,7 @@ body.transfer-modal-open {
 
 .ts-outbound-summary {
   display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(230px, 0.65fr) minmax(280px, 1.35fr) auto auto;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(130px, 0.45fr) minmax(230px, 0.65fr) minmax(280px, 1.35fr) auto auto;
   gap: 20px;
   align-items: center;
   min-height: 92px;
@@ -6477,6 +6477,7 @@ body.transfer-modal-open {
 .ts-outbound-group.risk-tight > .ts-outbound-summary { background: #fffaf0; }
 
 .ts-outbound-identity,
+.ts-outbound-eta,
 .ts-outbound-cargo,
 .ts-outbound-pols {
   display: grid;
@@ -6494,6 +6495,13 @@ body.transfer-modal-open {
   color: var(--ink);
   font-size: 21px;
   font-weight: 760;
+}
+
+.ts-outbound-eta > strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 680;
+  white-space: nowrap;
 }
 
 .ts-outbound-identity em,
@@ -6773,7 +6781,7 @@ body.transfer-modal-open {
   .transfer-call-choice-card { grid-template-columns: 1fr; }
   .ts-route-group > summary { grid-template-columns: minmax(150px, 0.7fr) minmax(280px, 1.25fr) 52px; }
   .ts-group-metrics { grid-column: 1 / -1; }
-  .ts-outbound-summary { grid-template-columns: minmax(170px, 0.8fr) minmax(220px, 0.7fr) minmax(240px, 1fr) auto; }
+  .ts-outbound-summary { grid-template-columns: minmax(170px, 0.8fr) minmax(125px, 0.45fr) minmax(220px, 0.7fr) minmax(240px, 1fr) auto; }
   .ts-outbound-toggle { grid-column: 1 / -1; text-align: right; }
   .ts-connection-group > summary { grid-template-columns: minmax(170px, 0.8fr) minmax(360px, 1.6fr) 88px 104px; }
   .ts-connection-expand { grid-column: 1 / -1; }
@@ -6801,8 +6809,11 @@ body.transfer-modal-open {
   .transfer-search-export { justify-items: stretch; }
   .transfer-search-export small { text-align: left; }
   .ts-outbound-summary { grid-template-columns: 1fr auto; gap: 14px; }
+  .ts-outbound-identity,
+  .ts-outbound-eta,
+  .ts-outbound-cargo { grid-column: 1; }
   .ts-outbound-pols { grid-column: 1 / -1; }
-  .ts-outbound-risk { grid-column: 2; grid-row: 1 / span 2; }
+  .ts-outbound-risk { grid-column: 2; grid-row: 1 / span 3; }
   .ts-outbound-toggle { grid-column: 1 / -1; }
   .ts-connection-group > summary { grid-template-columns: 1fr auto; gap: 13px; }
   .ts-connection-times { grid-column: 1 / -1; grid-template-columns: 1fr 18px 1fr; }
