@@ -2031,7 +2031,16 @@ function groupTransferResolvedEvents(events) {
           return missedPriority || left.arrivalDate.localeCompare(right.arrivalDate) || compareAlpha(left.vvdIn, right.vvdIn) || compareAlpha(left.from, right.from);
         }),
     }))
-    .sort((left, right) => compareAlpha(left.vvdOut, right.vvdOut));
+    .sort((left, right) => {
+      const leftEta = dateMs(left.eta);
+      const rightEta = dateMs(right.eta);
+      const leftHasEta = Number.isFinite(leftEta);
+      const rightHasEta = Number.isFinite(rightEta);
+      if (leftHasEta && rightHasEta) return leftEta - rightEta || compareAlpha(left.vvdOut, right.vvdOut);
+      if (leftHasEta) return -1;
+      if (rightHasEta) return 1;
+      return compareAlpha(left.vvdOut, right.vvdOut);
+    });
 }
 
 function transferBlRows(events) {
